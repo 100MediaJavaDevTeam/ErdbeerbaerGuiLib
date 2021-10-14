@@ -7,7 +7,6 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.client.gui.screen.ModListScreen;
 import net.minecraftforge.fml.client.gui.widget.ModListWidget;
-import net.minecraftforge.fml.common.Mod;
 import org.apache.commons.lang3.ArrayUtils;
 import org.objectweb.asm.Type;
 import org.spongepowered.asm.mixin.Mixin;

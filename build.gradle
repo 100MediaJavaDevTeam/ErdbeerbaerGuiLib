@@ -1,57 +1,42 @@
 buildscript {
     repositories {
-        jcenter()
+        // These repositories are only for Gradle plugins, put any other repositories in the repository block further below
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://maven.parchmentmc.org' }
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
         mavenCentral()
-        maven { url = "http://files.minecraftforge.net/maven" }
-        maven {
-            name = 'sponge'
-            url = 'https://repo.spongepowered.org/maven'
-        }
-        repositories {
-            maven {
-                url "https://plugins.gradle.org/m2/"
-            }
-        }
-        maven { url = 'https://sizableshrimp.me/maven' }
     }
     dependencies {
-        classpath group: 'me.sizableshrimp.parchmenttest', name: 'ForgeGradle', version: '4.1.+', changing: true
-        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-        classpath "com.github.jengelman.gradle.plugins:shadow:4.0.4"
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath 'org.parchmentmc:librarian:1.+'
+        classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7-SNAPSHOT'
     }
 }
+
 plugins {
-    id "com.matthewprenger.cursegradle" version "1.4.0"
+    id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
+
 apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'com.github.johnrengelman.shadow'
 // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'maven-publish'
-repositories {
-    jcenter()
-    maven {
-        name = 'sponge'
-        url = 'https://repo.spongepowered.org/maven'
-    }
-}
-version = "1.0.6"
-group = "de.erdbeerbaerlp.eguilib" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "eguilib"
 
-sourceCompatibility = targetCompatibility = '1.8'
-compileJava {
-    sourceCompatibility = targetCompatibility = '1.8'
-}
+version = mod_version
+group = 'de.erdbeerbaerlp.eguilib' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = 'eguilib'
+
+// Mojang ships Java 8 to end users, so your mod should target Java 8.
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 minecraft {
-
     // The mappings can be changed at any time, and must be in the following format.
     // snapshot_YYYYMMDD   Snapshot are built nightly.
     // stable_#            Stables are built at the discretion of the MCP team.
     // Use non-default mappings at your own risk. they may not always work.
     // Simply re-run your setup task after changing the mappings to update your workspace.
-    mappings channel: 'parchment', version: "2021.08.08-1.16.5"
+    mappings channel: 'parchment', version: '2021.10.10-1.16.5'
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -68,7 +53,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
 
             mods {
-                dcintegration {
+                eguilib {
                     source sourceSets.main
                 }
             }
@@ -84,86 +69,88 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
 
             mods {
-                dcintegration {
+                eguilib {
                     source sourceSets.main
                 }
             }
         }
     }
 }
-configurations {
-    embed
-    compile.extendsFrom(embed)
+
+repositories {
+    maven { url 'https://jitpack.io' }
+
+    //Java Advanced Imaging for ImageIO
+    maven { url 'https://maven.geotoolkit.org' }
 }
+
+configurations {
+    implementation.extendsFrom shadow
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.16.5-36.2.8'
+
+    annotationProcessor "org.spongepowered:mixin:0.8.4:processor"
+
+    shadow 'com.github.dragon66:icafe:26c49d5d40'
+    shadow 'com.github.rkalla:imgscalr:4.2-release'
+    shadow 'org.mp4parser:isoparser:1.9.41'
+}
+
+mixin {
+    add sourceSets.main, 'mixins.eguilib.refmap.json'
+
+    // Sets up the mixin config; this gets added to run configurations and the manifest in the final jar
+    config 'mixins.eguilib.json'
+
+    // Enables exporting mixin-changed classes to .mixin.out in the run folder
+    debug.export = true
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title': 'eguilib',
+                'Specification-Vendor': 'eguilib',
+                'Specification-Version': '1', // We are version 1 of ourselves
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'eguilib',
+                'Implementation-Timestamp': new Date().format('yyyy-MM-dd\'T\'HH:mm:ssZ')
+        ])
+    }
+}
+
 shadowJar {
-    configurations = [project.configurations.embed]
+    classifier ''
+    configurations = [project.configurations.shadow]
+
     relocate 'com.icafe4j', 'guilibshadow.cafe4j'
     relocate 'org.imgscalr', 'guilibshadow.org.imgscalr'
     relocate 'jj2000', 'guilibshadow.jj2000'
     relocate 'org.slf4j', 'guilibshadow.org.slf4j'
 
-}
-repositories {
-    maven { url 'https://jitpack.io' }
-    maven{ url "http://maven.geotoolkit.org"} //Java Advanced Imaging for ImageIO
-}
-dependencies {
-    minecraft 'net.minecraftforge:forge:1.16.5-36.2.6'
-    annotationProcessor "org.spongepowered:mixin:0.8.2:processor"
-    embed 'com.github.dragon66:icafe:26c49d5d40'
-    embed 'com.github.rkalla:imgscalr:4.2-release'
-    embed 'org.mp4parser:isoparser:1.9.41'
-}
-mixin {
-    add sourceSets.main, 'mixins.eguilib.refmap.json'
-}
-reobf {
-    shadowJar {
-        dependsOn tasks.createMcpToSrg
-        mappings = tasks.createMcpToSrg.outputs.files.singleFile
-    }
-}
-artifacts {
-    archives tasks.shadowJar
-}
-jar {
-    manifest {
-        attributes([
-                'Maven-Artifact'          : "${project.group}:${project.archivesBaseName}:${project.version}",
-                'Timestamp'               : System.currentTimeMillis(),
-                "Specification-Title"     : "eguilib",
-                "Specification-Vendor"    : "eguilib",
-                "Specification-Version"   : "1", // We are version 1 of ourselves
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : "${version}",
-                "Implementation-Vendor"   : "eguilib",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'MixinConnector': 'de.erdbeerbaerlp.guilib.GuiLibMixinConnector'
-        ])
-    }
+    finalizedBy 'reobfShadowJar'
 }
 
-curseforge {
-    // $GRADLE_USER_HOME/gradle.properties
-    if (project.hasProperty('curseforge.apikey')) {
-        apiKey = getProperty("curseforge.apikey")
-        project {
-            id = '332522'
-            changelog = project.changelog
-            releaseType = 'beta'
-            addGameVersion '1.16.4'
-            addGameVersion '1.16.5'
-            mainArtifact(jar) {
-                displayName = "Erdbeerbaer's GUI Library-$version (MC 1.16.4+)"
-            }
-        }
-    }
+artifacts {
+    shadowJar
 }
-tasks.curseforge.dependsOn(build)
+
+reobf {
+    shadowJar {}
+}
+
+afterEvaluate {
+    jar.finalizedBy reobfJar
+    reobfShadowJar.dependsOn shadowJar
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifact jar
+            artifact shadowJar
         }
     }
     repositories {
